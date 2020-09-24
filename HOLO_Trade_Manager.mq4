@@ -23,7 +23,7 @@ public:
 
 #property copyright "Copyright 2020, Aeson"
 #property link      "https://www.forexfactory.com/aeson"
-#define VERSION "1.01"
+#define VERSION "1.02"
 #property version VERSION
 #property strict
 
