@@ -3,9 +3,6 @@
 //|                                            Copyright 2020, Aeson |
 //|                               https://www.forexfactory.com/aeson |
 //+------------------------------------------------------------------+
-//#include <WinUser32.mqh>
-//#import "user32.dll"
-//int GetAncestor(int, int);
 
 class TrailingStop {
 public:
@@ -23,7 +20,7 @@ public:
 
 #property copyright "Copyright 2020, Aeson"
 #property link      "https://www.forexfactory.com/aeson"
-#define VERSION "1.02"
+#define VERSION "1.03"
 #property version VERSION
 #property strict
 
@@ -32,8 +29,21 @@ extern bool DrawHoLoLevels = true;
 extern bool DrawSymbolInfo = true;
 extern bool DrawEntryMarkers = true;
 extern bool DrawPipProfitLevels = true;
+extern bool DrawAreaOfInterest = true;
 extern bool ShowAlerts = false;
 extern bool ShowMotivationalMessage = true;
+
+extern color DailyHighLineColor = clrLimeGreen;
+extern color DailyLowLineColor = clrRed;
+extern color OpenHighLineColor = clrLightGreen;
+extern color OpenLowLineColor = clrPink;
+extern color YesterdayHighLineColor = clrLimeGreen;
+extern color YesterdayLowLineColor = clrRed;
+extern color YesterdayHighBreakoutLineColor = clrDarkGreen;
+extern color YesterdayLowBreakoutLineColor = clrMaroon;
+extern color PrimaryTextColor = clrWhite;
+extern color SecondaryTextColor = clrGray;
+extern color AreaOfInterestColor = C'35,35,35';
 
 int FivePipIntervals = 6;
 
@@ -74,6 +84,11 @@ string _BtnMoveToBreakEven = "_BtnMoveToBreakEven";
 string _BtnPlusPip = "_BtnPlusPip";
 string _BtnMinusPip = "_BtnMinusPip";
 string _BtnSetTrailingStop = "_BtnSetTrailingStop";
+string _AreaOfInterestHigh = "_AreaOfInterestHigh";
+string _lblAreaOfInterestHigh = "_lblAreaOfInterestHigh";
+string _AreaOfInterestLow = "_AreaOfInterestLow";
+string _lblAreaOfInterestLow = "_lblAreaOfInterestLow";
+
 
 string _LblEmotions = "_LblEmotions";
 
@@ -135,7 +150,8 @@ void OnTick() {
    DeleteObjects();
    DrawLines();
    DrawInfo();
-
+   DrawAreaOfInterest();
+   
    DeleteStaticObjects();
    DrawStaticObjects();
    
@@ -158,7 +174,7 @@ void OnTimer() {
    
    if (DrawSymbolInfo) {
       long leftTime =(Period()*60)-(TimeCurrent()-Time[0]);
-      DrawLabel(_LabelTimeToClose, "Bar Close: " + TimeToStr(leftTime,TIME_SECONDS), clrWhite, 12, 20, 130, CORNER_RIGHT_UPPER, "Arial Bold");
+      DrawLabel(_LabelTimeToClose, "Bar Close: " + TimeToStr(leftTime,TIME_SECONDS), PrimaryTextColor, 12, 20, 130, CORNER_RIGHT_UPPER, "Arial Bold");
    }
    
 }
@@ -202,27 +218,27 @@ void DrawLines() {
 
    if (DrawHoLoLevels) {
       if (YesterdayHigh < DailyHigh) {
-         DrawHLine(_YesHigh, iTime(NULL, PERIOD_D1, 1), iHigh(NULL, PERIOD_D1, 1), clrDarkGreen, STYLE_SOLID, "Yesterday High", 0, clrDimGray);
+         DrawHLine(_YesHigh, iTime(NULL, PERIOD_D1, 1), iHigh(NULL, PERIOD_D1, 1), YesterdayHighBreakoutLineColor, STYLE_SOLID, "Yesterday High", 0, clrDimGray);
       } else {
-         DrawHLine(_YesHigh, iTime(NULL, PERIOD_D1, 1), iHigh(NULL, PERIOD_D1, 1), clrLimeGreen, STYLE_SOLID, "Yesterday High");
+         DrawHLine(_YesHigh, iTime(NULL, PERIOD_D1, 1), iHigh(NULL, PERIOD_D1, 1), YesterdayHighLineColor, STYLE_SOLID, "Yesterday High");
       }
    
       if (YesterdayLow > DailyLow) {
-         DrawHLine(_YesLow, iTime(NULL, PERIOD_D1, 1), iLow(NULL, PERIOD_D1, 1), clrMaroon, STYLE_SOLID, "Yesterday Low", 0, clrDimGray);
+         DrawHLine(_YesLow, iTime(NULL, PERIOD_D1, 1), iLow(NULL, PERIOD_D1, 1), YesterdayLowBreakoutLineColor, STYLE_SOLID, "Yesterday Low", 0, clrDimGray);
       } else {
-         DrawHLine(_YesLow, iTime(NULL, PERIOD_D1, 1), iLow(NULL, PERIOD_D1, 1), clrRed, STYLE_SOLID, "Yesterday Low");
+         DrawHLine(_YesLow, iTime(NULL, PERIOD_D1, 1), iLow(NULL, PERIOD_D1, 1), YesterdayLowLineColor, STYLE_SOLID, "Yesterday Low");
       }
    
-      DrawHLine(_DayHigh, DailyHighTime, DailyHigh, clrLimeGreen, STYLE_DASH, "High");
+      DrawHLine(_DayHigh, DailyHighTime, DailyHigh, DailyHighLineColor, STYLE_DASH, DrawAreaOfInterest ? "" : "High");
    
    
-      DrawHLine(_DayLow, DailyLowTime, DailyLow, clrRed, STYLE_DASH, "Low");
+      DrawHLine(_DayLow, DailyLowTime, DailyLow, DailyLowLineColor, STYLE_DASH, DrawAreaOfInterest ? "" : "Low");
    
    
-      DrawHLine(_OpenHigh, OpenHighTime, OpenHigh, clrLightGreen, STYLE_DASH, "Open", 0, clrLightGreen);
+      DrawHLine(_OpenHigh, OpenHighTime, OpenHigh, OpenHighLineColor, STYLE_DASH, DrawAreaOfInterest ? "" : "Open", 0, clrLightGreen);
    
    
-      DrawHLine(_OpenLow, OpenLowTime, OpenLow, clrPink, STYLE_DASH, "Open", 0, clrPink);
+      DrawHLine(_OpenLow, OpenLowTime, OpenLow, OpenLowLineColor, STYLE_DASH, DrawAreaOfInterest ? "" : "Open", 0, clrPink);
    }
 
 
@@ -294,13 +310,20 @@ void DeleteObjects() {
       ObjectDelete("PIP"+(string)i);
       ObjectDelete("PIP"+(string)i+"label");
    }
+   
+   ObjectDelete(_AreaOfInterestHigh);
+   ObjectDelete(_AreaOfInterestLow);
+   ObjectDelete(_lblAreaOfInterestHigh);
+   ObjectDelete(_lblAreaOfInterestLow);
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void DrawHLine(string name, datetime time, double price, double colour, int style, string label, int offset = 0, color textColour = clrWhite) {
+void DrawHLine(string name, datetime time, double price, double colour, int style, string label, int offset = 0, color textColour = NULL) {
+   textColour = textColour == NULL ? PrimaryTextColor : textColour;
+   
    ObjectCreate(name, OBJ_TREND, 0, Time[0]+Period()*(120+offset), price, time, price);
    ObjectSet(name, OBJPROP_COLOR, colour);
    ObjectSet(name, OBJPROP_STYLE, style);
@@ -321,7 +344,7 @@ void DrawHLine(string name, datetime time, double price, double colour, int styl
 void DrawEntryLine(string name, double price, double colour, int style, string label) {
    datetime time1 = Time[0]+Period()*500;
 
-   ObjectCreate(name, OBJ_TREND, 0, time1, price, Time[0], price);
+   ObjectCreate(name, OBJ_TREND, 0, time1, price, Time[0]+Period()*(120), price);
    ObjectSet(name, OBJPROP_COLOR, colour);
    ObjectSet(name, OBJPROP_STYLE, style);
    ObjectSet(name, OBJPROP_RAY_RIGHT, false);
@@ -330,7 +353,7 @@ void DrawEntryLine(string name, double price, double colour, int style, string l
 
    ObjectCreate(labelName, OBJ_TEXT, 0, time1+Period()*60, price);
    ObjectSet(labelName,OBJPROP_ANCHOR, ANCHOR_LEFT);
-   ObjectSetText(labelName,label,8,DefaultFont,clrWhite);
+   ObjectSetText(labelName,label,8,DefaultFont,PrimaryTextColor);
    ObjectSet(labelName, OBJPROP_ZORDER, 50);
 }
 
@@ -351,9 +374,9 @@ void DrawLabel(string name, string text, color colour, int size, int x, int y, i
 
 void DrawInfo() {
    if (DrawSymbolInfo) {
-      DrawLabel(_LabelSymbol, _Symbol + " " + PeriodName(_Period), clrWhite, 20, 20, 50, CORNER_RIGHT_UPPER, "Arial Bold");
-      DrawLabel(_LabelSpread, "Spread: " + (string)Spread + " points", clrWhite, 14, 20, 82, CORNER_RIGHT_UPPER, "Arial");
-      DrawLabel(_LabelSpreadMinMax, "Min: " + (string)SpreadMin + " / Max: " + (string)SpreadMax, clrWhite, 10, 20, 104, CORNER_RIGHT_UPPER, "Arial");
+      DrawLabel(_LabelSymbol, _Symbol + " " + PeriodName(_Period), PrimaryTextColor, 20, 20, 50, CORNER_RIGHT_UPPER, "Arial Bold");
+      DrawLabel(_LabelSpread, "Spread: " + (string)Spread + " points", PrimaryTextColor, 14, 20, 82, CORNER_RIGHT_UPPER, "Arial");
+      DrawLabel(_LabelSpreadMinMax, "Min: " + (string)SpreadMin + " / Max: " + (string)SpreadMax, PrimaryTextColor, 10, 20, 104, CORNER_RIGHT_UPPER, "Arial");
    }
 }
 
@@ -361,14 +384,14 @@ void DrawInfo() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void DrawShortPipMarkers(double entry = 0) {
-   entry = entry > 0 ? entry - EntrySpreadSprice : ShortEntry - SpreadPrice;
+   entry = entry > 0 ? entry - SpreadPrice : ShortEntry - SpreadPrice;
    
    
    for(int i=1; i<=FivePipIntervals*5; i++) {
       if (i%5==0) {
-         DrawHLine("PIP"+(string)i, Time[0], entry-(SinglePip*i), clrGray, STYLE_DOT, "+" + (string)(i), -10, clrGray);
+         DrawHLine("PIP"+(string)i, Time[0], entry-(SinglePip*i), SecondaryTextColor, STYLE_DOT, "+" + (string)(i), -10, SecondaryTextColor);
       } else {
-         DrawHLine("PIP"+(string)i, Time[0], entry-(SinglePip*i), clrGray, STYLE_DOT, "", -15, clrGray);
+         DrawHLine("PIP"+(string)i, Time[0], entry-(SinglePip*i), SecondaryTextColor, STYLE_DOT, "", -15, SecondaryTextColor);
       }
       
    }
@@ -384,18 +407,40 @@ void DrawLongPipMarkers(double entry = 0) {
    for(int i=1; i<=FivePipIntervals*5; i++) {
       
       if (i%5==0) {
-         DrawHLine("PIP"+(string)i, Time[0], entry+(SinglePip*i), clrGray, STYLE_DOT, "+" + (string)(i), -10, clrGray);
+         DrawHLine("PIP"+(string)i, Time[0], entry+(SinglePip*i), SecondaryTextColor, STYLE_DOT, "+" + (string)(i), -10, SecondaryTextColor);
       } else {
-         DrawHLine("PIP"+(string)i, Time[0], entry+(SinglePip*i), clrGray, STYLE_DOT, "", -15, clrGray);
+         DrawHLine("PIP"+(string)i, Time[0], entry+(SinglePip*i), SecondaryTextColor, STYLE_DOT, "", -15, SecondaryTextColor);
       }
    }
 }
+
+void DrawAreaOfInterest() {
+   if (DrawAreaOfInterest){
+      ObjectCreate(_AreaOfInterestHigh, OBJ_RECTANGLE, 0, OpenHighTime, OpenHigh, Time[0]+Period()*(120), DailyHigh);
+      ObjectSet(_AreaOfInterestHigh, OBJPROP_COLOR, AreaOfInterestColor);
+      
+      string pipsHigh = DoubleToString((DailyHigh - OpenHigh)/SinglePip, 1) + " ";
+      ObjectCreate(_lblAreaOfInterestHigh, OBJ_TEXT, 0, Time[0]+Period()*(120), DailyHigh-SinglePip);
+      ObjectSet(_lblAreaOfInterestHigh, OBJPROP_ANCHOR, ANCHOR_RIGHT);
+      ObjectSetText(_lblAreaOfInterestHigh,pipsHigh,8,DefaultFont,PrimaryTextColor);
+      
+      ObjectCreate(_AreaOfInterestLow, OBJ_RECTANGLE, 0, OpenLowTime, OpenLow, Time[0]+Period()*(120), DailyLow);
+      ObjectSet(_AreaOfInterestLow, OBJPROP_COLOR, AreaOfInterestColor);
+      
+      string pipsLow = DoubleToString((OpenLow - DailyLow)/SinglePip, 1) + " ";
+      ObjectCreate(_lblAreaOfInterestLow, OBJ_TEXT, 0, Time[0]+Period()*(120), DailyLow+SinglePip);
+      ObjectSet(_lblAreaOfInterestLow, OBJPROP_ANCHOR, ANCHOR_RIGHT);
+      ObjectSetText(_lblAreaOfInterestLow,pipsLow ,8,DefaultFont,PrimaryTextColor);
+     
+   }
+}
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void DrawStaticObjects() {
-   DrawLabel(lblTitle, "HOLO Trade Manager " + (string)VERSION, clrWhite, 16, 10, 30, CORNER_LEFT_UPPER, "Arial Bold");
-   DrawLabel(lblAuthor, "Created by Aeson  -  Inspired by TooSlow", clrWhiteSmoke, 8, 10, 55, CORNER_LEFT_UPPER, "Arial");
+   DrawLabel(lblTitle, "HOLO Trade Manager " + (string)VERSION, PrimaryTextColor, 16, 10, 30, CORNER_LEFT_UPPER, "Arial Bold");
+   DrawLabel(lblAuthor, "Created by Aeson  -  Inspired by TooSlow", PrimaryTextColor, 8, 10, 55, CORNER_LEFT_UPPER, "Arial");
    
    ObjectCreate(_DayStartLine, OBJ_VLINE, 0, iTime(NULL, PERIOD_D1, 0), 0);
    ObjectSet(_DayStartLine, OBJPROP_COLOR, clrGray);
@@ -411,20 +456,6 @@ void DeleteStaticObjects() {
    ObjectDelete(lblAuthor);
 }
 
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-//void PauseStrategyTester() {
-//   if (!pauseHighPrimed || !pauseLowPrimed) return;
-//   int hmain;
-//  if (IsTesting() && IsVisualMode()) {
-//      pauseHighPrimed = false;
-//      pauseLowPrimed = false;
-//     hmain = GetAncestor(WindowHandle(Symbol(), Period()), 2 /* GA_ROOT */);
-//      PostMessageA(hmain, WM_COMMAND, 0x57a, 0);
-//   }
-//}
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
@@ -522,9 +553,9 @@ double CalculateLotSize(double SL) {
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OpenLongOrder() {
-   double stopPips = MathRound((LongEntry - DailyLow + SpreadPrice) * (MathPow(10, _Digits - 1)));
+   double stopPips = MathRound((LongEntry - DailyLow) * (MathPow(10, _Digits - 1)));
 
-   double stopLoss = LongEntry - (stopPips * SinglePip);
+   double stopLoss = DailyLow; //LongEntry - (stopPips * SinglePip);
    double lotSize = CalculateLotSize(stopPips);
 //Print("Lot Size: ", lotSize);
    int ticket = OrderSend(_Symbol, OP_BUYSTOP, lotSize, LongEntry, 3, stopLoss, 0, NULL, MagicNumber, 0, Green);
